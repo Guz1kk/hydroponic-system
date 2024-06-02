@@ -15,6 +15,16 @@ class SystemsView(APIView):
         systems = System.objects.all()
         response = SystemsSerializer(systems, many=True)
         return JsonResponse(response.data, safe=False)
+
+    def post(self, request) -> HttpResponse:
+        from django.contrib.auth.models import User
+        data = self.request.data
+        #user = self.request.user
+        user = User.objects.get(username='admin')
+        system = System(name=data['name'], user = user)
+        system.save()
+        return HttpResponse(status=201)
+    
     
 
 class SingleSystemView(APIView):
