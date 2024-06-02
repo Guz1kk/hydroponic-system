@@ -20,6 +20,21 @@ class SystemsView(APIView):
 class SingleSystemView(APIView):
     """ Single system view """
     
+    def get(self, request, systemID:int) -> JsonResponse:
+        """Single system indo
+
+        Args:
+            systemID (int): system id
+
+        Returns:
+            HttpResponse: HTTP 404 if object not found
+            JsonResponse: system info JSON
+        """
+        system = get_object_or_404(System, pk=systemID)
+        response = SystemsSerializer(system, many=False)
+        return JsonResponse(response.data, safe=False)
+    
+    
     def delete(self, request, systemID:int) -> HttpResponse:
         """_summary_
 
