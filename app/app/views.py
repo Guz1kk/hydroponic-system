@@ -1,8 +1,7 @@
-from django.shortcuts import render
 from app.models import System
 from rest_framework.views import APIView
 from django.http import JsonResponse, HttpResponse
-from app.serializers import SystemsSerializer
+from app.serializers import SystemsSerializer, MeasurementSerializer
 from django.shortcuts import get_object_or_404
 
 
@@ -58,3 +57,14 @@ class SingleSystemView(APIView):
         system = get_object_or_404(System, pk=systemID)
         system.delete()
         return HttpResponse(status=204)
+    
+
+class MeasurementView(APIView):
+    """ Measurement view """
+    
+    def post(self, request) -> HttpResponse:
+        serializer = MeasurementSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return HttpResponse(status=201)
+        return HttpResponse(status=400)
