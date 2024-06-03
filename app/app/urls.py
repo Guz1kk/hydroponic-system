@@ -7,5 +7,5 @@ urlpatterns = [
     
     path('<int:systemID>', views.SingleSystemView.as_view(), name='single sytem CRUD'),
     
-    path('measurement', views.MeasurementView.as_view(), name='add measurement'),
+    path('<int:systemID>/measurements', views.MeasurementView.as_view(), name='add measurement'),
 ]

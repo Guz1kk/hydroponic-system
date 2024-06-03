@@ -15,6 +15,7 @@ class System(models.Model):
     
 class Measurement(models.Model):
     """ Measurements model """
+    system = models.ForeignKey(System, on_delete=models.CASCADE)
     sensor = models.CharField(max_length=30)
     ph = models.DecimalField(max_digits=3, decimal_places=1)
     water_temperature = models.DecimalField(max_digits=4, decimal_places=1)

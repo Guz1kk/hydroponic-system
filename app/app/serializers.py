@@ -19,9 +19,10 @@ class SystemsSerializer(serializers.ModelSerializer):
     
 class MeasurementSerializer(serializers.ModelSerializer):
     """ Measurement serializer """
+    system = SystemsSerializer()
     class Meta:
         model = Measurement
-        fields = ['id', 'sensor', 'ph', 'water_temperature', 'tds', 'time']
+        fields = ['id', 'sensor', 'ph', 'water_temperature', 'tds', 'time','system']
         
 
 class SingleSystemSerializer(serializers.ModelSerializer):
@@ -32,5 +33,5 @@ class SingleSystemSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
     def get_measurements(self, obj):
-        latest_measurements = obj.measurements.order_by('-time')[:10]
+        latest_measurements = obj.measurement_set.order_by('-time')[:10]
         return MeasurementSerializer(latest_measurements, many=True).data

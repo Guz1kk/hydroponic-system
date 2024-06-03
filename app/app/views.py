@@ -1,4 +1,4 @@
-from app.models import System
+from app.models import System, Measurement
 from rest_framework.views import APIView
 from django.http import JsonResponse, HttpResponse
 from app.serializers import SystemsSerializer, MeasurementSerializer, SingleSystemSerializer
@@ -92,12 +92,23 @@ class MeasurementView(APIView):
     """ Measurement view """
     
     @swagger_auto_schema(
+        operation_description='Get sytem measurements',
+        responses={200: MeasurementSerializer}
+    )
+    def get(self, request, systemID:int) -> JsonResponse:
+        user = self.request.user
+        system = get_object_or_404(System, pk=systemID, user=user)
+        measurements = Measurement.objects.filter(system=system)
+        response = MeasurementSerializer(measurements, many=True)
+        return JsonResponse(response.data, safe=False)
+    
+    @swagger_auto_schema(
         operation_description='Add measurement',
         request_body=MeasurementSerializer,
         responses={201:'Successfully added',
                    400:'Bad request'}
     )
-    def post(self, request) -> HttpResponse:
+    def post(self, request, sytemID:int) -> HttpResponse:
         serializer = MeasurementSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
