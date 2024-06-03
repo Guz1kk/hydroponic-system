@@ -6,7 +6,7 @@ class SystemsSerializer(serializers.ModelSerializer):
     """ All systems serializer """
     class Meta:
         model = System
-        fields = ['id', 'user', 'name']
+        fields = ['id', 'user', 'name', 'info']
         extra_kwargs = {
             'user': {'read_only': True}
         }
@@ -15,6 +15,12 @@ class SystemsSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         validated_data['user'] = request.user
         return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        instance.name = validated_data.get('name', instance.name)
+        instance.info = validated_data.get('info', instance.info)
+        instance.save()
+        return instance
         
     
 class MeasurementSerializer(serializers.ModelSerializer):

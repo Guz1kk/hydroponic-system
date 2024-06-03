@@ -5,19 +5,35 @@ from app.serializers import SystemsSerializer, MeasurementSerializer, SingleSyst
 from django.shortcuts import get_object_or_404
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
+from django.core.paginator import Paginator
 
 
 class SystemsView(APIView):
     """ All systems view """
     
+    DEFAULT_SORT_BY = 'name'
+    DEFAULT_SORT_ORDER = 'asc'
+    
+    sort_by_param = openapi.Parameter('sort_by', openapi.IN_QUERY,
+                                    description='Field on sort by',
+                                    type=openapi.TYPE_STRING)
+    order_by_param = openapi.Parameter('sort_order', openapi.IN_QUERY,
+                                    description='Sort order ("asc" or "desc")',
+                                    type=openapi.TYPE_STRING)
+    
     @swagger_auto_schema(
         operation_description='Get all systems data',
-        responses={200:SystemsSerializer(many=True)}
+        responses={200:SystemsSerializer(many=True),},
+        manual_parameters=[sort_by_param, order_by_param],
     )
     def get(self, request) -> JsonResponse:
         """ All system get """
+        sort_by = request.query_params.get('sort_by',self.DEFAULT_SORT_BY)
+        order_by = request.query_params.get('sort_order', self.DEFAULT_SORT_ORDER)
+        
         user = self.request.user
         systems = System.objects.filter(user=user)
+        systems = systems.order_by(f"{order_by}{sort_by}")
         response = SystemsSerializer(systems, many=True)
         return JsonResponse(response.data, safe=False)
 
@@ -27,7 +43,8 @@ class SystemsView(APIView):
         request_body=SystemsSerializer,
     )
     def post(self, request) -> HttpResponse:
-        serializer = SystemsSerializer(data=request.data, context={'request': request})
+        serializer = SystemsSerializer(data=request.data,
+                                       context={'request': request})
         if serializer.is_valid():
             serializer.save()
             return HttpResponse(status=201)
@@ -41,7 +58,15 @@ class SingleSystemView(APIView):
     @swagger_auto_schema(
         operation_description='Get single system data with last 10 measurements',
         responses={404:'Object not found',
-                   200: SingleSystemSerializer(many=False)}
+                   200: SingleSystemSerializer(many=False)},
+        manual_parameters=[
+            openapi.Parameter(
+                'systemID',
+                openapi.IN_PATH,
+                description="System ID",
+                type=openapi.TYPE_INTEGER
+            )
+        ],
     )
     def get(self, request, systemID:int) -> JsonResponse:
         """Single system indo
@@ -59,6 +84,39 @@ class SingleSystemView(APIView):
         return JsonResponse(response.data, safe=False)
     
     @swagger_auto_schema(
+        operation_description='Update system',
+        responses={200:'Successfull update',
+                   404:'Object not found'},
+        manual_parameters=[
+            openapi.Parameter(
+                'systemID',
+                openapi.IN_PATH,
+                description="System ID",
+                type=openapi.TYPE_INTEGER
+            )
+        ],
+        request_body=SingleSystemSerializer,
+        security=[{'Bearer': []}]
+    )
+    def patch(self, request, systemID:int) -> JsonResponse:
+        """Update system
+
+        Args:
+            systemID (int): system id
+
+        Returns:
+            JsonResponse: HTTP 200 - successful update
+                          HTTP 404 - object not found
+        """
+        user=self.request.user
+        system = get_object_or_404(System, pk=systemID, user=user)
+        serializer = SystemsSerializer(system, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return JsonResponse(serializer.data)
+        return JsonResponse(serializer.errors, status=400)
+    
+    @swagger_auto_schema(
         operation_description='Delete system',
         responses={204:'Successfull delete',
                    404:'Object not found'},
@@ -73,7 +131,7 @@ class SingleSystemView(APIView):
         security=[{'Bearer': []}]
     )
     def delete(self, request, systemID:int) -> HttpResponse:
-        """_summary_
+        """Delete system
 
         Args:
             systemID (int): system id
@@ -91,16 +149,44 @@ class SingleSystemView(APIView):
 class MeasurementView(APIView):
     """ Measurement view """
     
+    DEFAULT_SORT_BY = "id"
+    DEFAULT_SORT_ORDER = "asc"
+    DEFAULT_LIMIT = 50
+    DEFAULT_OFFSET = 1
+    
+    sort_by_param = openapi.Parameter('sort_by', openapi.IN_QUERY,
+                                    description='Field on sort by',
+                                    type=openapi.TYPE_STRING)
+    order_by_param = openapi.Parameter('sort_order', openapi.IN_QUERY,
+                                    description='Sort order ("asc" or "desc")',
+                                    type=openapi.TYPE_STRING)
+    limit_param = openapi.Parameter('limit', openapi.IN_QUERY,
+                                    description='Max objects on page',
+                                    type=openapi.TYPE_INTEGER)
+    offset_param = openapi.Parameter('offset', openapi.IN_QUERY,
+                                    description='Page number',
+                                    type=openapi.TYPE_INTEGER)
+    
     @swagger_auto_schema(
         operation_description='Get system measurements',
         responses={200: MeasurementSerializer,
-                   404:'Object not found'}
+                   404:'Object not found'},
+        manual_parameters=[sort_by_param, order_by_param, limit_param, offset_param],
     )
     def get(self, request, systemID:int) -> JsonResponse:
+        sort_by = request.query_params.get('sort_by',self.DEFAULT_SORT_BY)
+        order_by = request.query_params.get('sort_order', self.DEFAULT_SORT_ORDER)
+        limit = request.query_params.get('limit', self.DEFAULT_LIMIT)
+        offset = request.query_params.get('offset', self.DEFAULT_OFFSET)
+
         user = self.request.user
         system = get_object_or_404(System, pk=systemID, user=user)
         measurements = Measurement.objects.filter(system=system)
-        response = MeasurementSerializer(measurements, many=True)
+        
+        measurements = measurements.order_by(f"{order_by}{sort_by}")
+        paginator = Paginator(measurements, limit)
+        page = paginator.page(offset)
+        response = MeasurementSerializer(page, many=True)
         return JsonResponse(response.data, safe=False)
     
     @swagger_auto_schema(
