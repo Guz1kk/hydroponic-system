@@ -92,8 +92,9 @@ class MeasurementView(APIView):
     """ Measurement view """
     
     @swagger_auto_schema(
-        operation_description='Get sytem measurements',
-        responses={200: MeasurementSerializer}
+        operation_description='Get system measurements',
+        responses={200: MeasurementSerializer,
+                   404:'Object not found'}
     )
     def get(self, request, systemID:int) -> JsonResponse:
         user = self.request.user
