@@ -29,7 +29,7 @@ class SystemsView(APIView):
     def get(self, request) -> JsonResponse:
         """ All system get """
         sort_by = request.query_params.get('sort_by',self.DEFAULT_SORT_BY)
-        order_by = request.query_params.get('sort_order', self.DEFAULT_SORT_ORDER)
+        order_by = '-' if request.query_params.get('sort_order', self.DEFAULT_SORT_ORDER)=='desc' else ''
         
         user = self.request.user
         systems = System.objects.filter(user=user)
@@ -153,6 +153,9 @@ class MeasurementView(APIView):
     DEFAULT_SORT_ORDER = "asc"
     DEFAULT_LIMIT = 50
     DEFAULT_OFFSET = 1
+    DEFAULT_FILTER_PARAM = ''
+    DEFAULT_START_VALUE_PARAM = ''
+    DEFAULT_END_VALUE_PARAM = ''
     
     sort_by_param = openapi.Parameter('sort_by', openapi.IN_QUERY,
                                     description='Field on sort by',
@@ -166,22 +169,44 @@ class MeasurementView(APIView):
     offset_param = openapi.Parameter('offset', openapi.IN_QUERY,
                                     description='Page number',
                                     type=openapi.TYPE_INTEGER)
+    filter_param = openapi.Parameter('filter', openapi.IN_QUERY,
+                                    description='Field to filter by',
+                                    type=openapi.TYPE_STRING)
+    start_value_param = openapi.Parameter('start_value', openapi.IN_QUERY,
+                                    description='Start value for the filter',
+                                    type=openapi.TYPE_STRING)
+    end_value_param = openapi.Parameter('end_value', openapi.IN_QUERY,
+                                    description='End value for the filter',
+                                    type=openapi.TYPE_STRING)
     
     @swagger_auto_schema(
         operation_description='Get system measurements',
         responses={200: MeasurementSerializer,
                    404:'Object not found'},
-        manual_parameters=[sort_by_param, order_by_param, limit_param, offset_param],
+        manual_parameters=[sort_by_param, order_by_param, limit_param,
+                           offset_param, filter_param, start_value_param,
+                           end_value_param,],
     )
     def get(self, request, systemID:int) -> JsonResponse:
         sort_by = request.query_params.get('sort_by',self.DEFAULT_SORT_BY)
-        order_by = request.query_params.get('sort_order', self.DEFAULT_SORT_ORDER)
+        order_by = '-' if request.query_params.get('sort_order', self.DEFAULT_SORT_ORDER)=='desc' else ''
         limit = request.query_params.get('limit', self.DEFAULT_LIMIT)
         offset = request.query_params.get('offset', self.DEFAULT_OFFSET)
+        filter_param = request.query_params.get('filter', self.DEFAULT_FILTER_PARAM)
+        start_value_param = request.query_params.get('start_value', self.DEFAULT_START_VALUE_PARAM)
+        end_value_param = request.query_params.get('end_value', self.DEFAULT_END_VALUE_PARAM)
 
         user = self.request.user
         system = get_object_or_404(System, pk=systemID, user=user)
         measurements = Measurement.objects.filter(system=system)
+        
+        if filter_param and (start_value_param or end_value_param):
+            filter_kwargs = {}
+            if start_value_param:
+                filter_kwargs[f"{filter_param}__gte"] = start_value_param
+            if end_value_param:
+                filter_kwargs[f"{filter_param}__lte"] = end_value_param
+            measurements = measurements.filter(**filter_kwargs)
         
         measurements = measurements.order_by(f"{order_by}{sort_by}")
         paginator = Paginator(measurements, limit)
@@ -195,7 +220,8 @@ class MeasurementView(APIView):
         responses={201:'Successfully added',
                    400:'Bad request'}
     )
-    def post(self, request, sytemID:int) -> HttpResponse:
+    def post(self, request, systemID:int) -> HttpResponse:
+        request.data['system'] = systemID
         serializer = MeasurementSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
