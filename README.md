@@ -10,9 +10,13 @@
 ## Installation
 
 1. **Clone the repository:**
-<center>
-   git clone https://github.com/Guz1kk/hydroponic-system.git
-</center>
-<center>
-cd hydroponic-system
-</center>
+
+      git clone https://github.com/Guz1kk/hydroponic-system.git
+
+      cd hydroponic-system
+
+2. **Create and activate a virtual environment:**
+
+      python -m venv venv
+
+      source venv/bin/activate
