@@ -10,6 +10,9 @@
 ## Installation
 
 1. **Clone the repository:**
-   '''
+<center>
    git clone https://github.com/Guz1kk/hydroponic-system.git
-   cd hydroponic-system'''
+</center>
+<center>
+cd hydroponic-system
+</center>
