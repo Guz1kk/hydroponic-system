@@ -22,7 +22,7 @@ class SystemsView(APIView):
                                     type=openapi.TYPE_STRING)
     
     @swagger_auto_schema(
-        operation_description='Get all systems data',
+        operation_description='GET all systems data',
         responses={200:SystemsSerializer(many=True),},
         manual_parameters=[sort_by_param, order_by_param],
     )
@@ -43,6 +43,12 @@ class SystemsView(APIView):
         request_body=SystemsSerializer,
     )
     def post(self, request) -> HttpResponse:
+        """Add system
+
+        Returns:
+            HttpResponse: 201 Successfully added
+                          400 Bad request
+        """
         serializer = SystemsSerializer(data=request.data,
                                        context={'request': request})
         if serializer.is_valid():
@@ -188,6 +194,14 @@ class MeasurementView(APIView):
                            end_value_param,],
     )
     def get(self, request, systemID:int) -> JsonResponse:
+        """Get measurements
+
+        Args:
+            systemID (int): system id
+
+        Returns:
+            JsonResponse: Measurements
+        """
         sort_by = request.query_params.get('sort_by',self.DEFAULT_SORT_BY)
         order_by = '-' if request.query_params.get('sort_order', self.DEFAULT_SORT_ORDER)=='desc' else ''
         limit = request.query_params.get('limit', self.DEFAULT_LIMIT)
@@ -221,6 +235,15 @@ class MeasurementView(APIView):
                    400:'Bad request'}
     )
     def post(self, request, systemID:int) -> HttpResponse:
+        """Add measurement
+
+        Args:
+            systemID (int): system id
+
+        Returns:
+            HttpResponse: 201 Successfully added
+                          400 Bad request
+        """
         request.data['system'] = systemID
         serializer = MeasurementSerializer(data=request.data)
         if serializer.is_valid():
